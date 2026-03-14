@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard • Vortex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: 'Poppins', sans-serif; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #262626; padding-bottom: 20px; }
+        .stats { display: flex; gap: 20px; margin: 20px 0; }
+        .card { background: #121212; padding: 20px; flex: 1; border-radius: 10px; border: 1px solid #262626; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; background: #121212; }
+        th, td { padding: 15px; border-bottom: 1px solid #262626; text-align: left; }
+        .ban { background: #ed4956; color: #fff; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .unban { background: #0095f6; color: #fff; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Panel</h1>
+        <button onclick="logout()" style="background:transparent; color:#fff; border:1px solid #262626; padding:10px; border-radius:5px; cursor:pointer;">Log Out</button>
+    </div>
+    
+    <div class="stats">
+        <div class="card"><h2 id="totalU">0</h2><p>Users</p></div>
+        <div class="card"><h2 id="totalP">0</h2><p>Posts</p></div>
+    </div>
+
+    <table>
+        <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="userTable"></tbody>
+    </table>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA", authDomain: "vortex-media-da0e7.firebaseapp.com", projectId: "vortex-media-da0e7", storageBucket: "vortex-media-da0e7.firebasestorage.app", messagingSenderId: "422977677460", appId: "1:422977677460:web:18dad3d9a07eb193052c81" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        async function loadData() {
+            const uSnap = await getDocs(collection(db, "users"));
+            document.getElementById('totalU').innerText = uSnap.size;
+            const table = document.getElementById('userTable');
+            table.innerHTML = "";
+            uSnap.forEach(uDoc => {
+                const u = uDoc.data();
+                table.innerHTML += `
+                    <tr>
+                        <td>${u.username}</td>
+                        <td>${u.email}</td>
+                        <td>${u.role}</td>
+                        <td>${u.isBanned ? 'Banned' : 'Active'}</td>
+                        <td>
+                            ${u.role !== 'admin' ? `
+                                <button class="${u.isBanned ? 'unban' : 'ban'}" onclick="toggleBan('${uDoc.id}', ${u.isBanned})">
+                                    ${u.isBanned ? 'Unban' : 'Ban'}
+                                </button>
+                            ` : 'Cannot Edit Admin'}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.toggleBan = async (id, status) => {
+            const confirm = await Swal.fire({ title: 'Are you sure?', showCancelButton: true });
+            if (confirm.isConfirmed) {
+                await updateDoc(doc(db, "users", id), { isBanned: !status });
+                loadData();
+            }
+        };
+
+        window.logout = () => signOut(auth).then(() => window.location.href="login.html");
+        loadData();
+    </script>
+</body>
+</html>
