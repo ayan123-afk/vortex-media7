@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload • Vortex Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
+        .card { max-width: 400px; margin: 50px auto; background: #121212; border: 1px solid #262626; padding: 30px; border-radius: 10px; text-align: center; }
+        input, textarea { width: 100%; background: #1a1a1a; border: 1px solid #262626; color: #fff; padding: 10px; margin: 10px 0; border-radius: 5px; box-sizing: border-box;}
+        button { width: 100%; padding: 10px; background: #0095f6; border: none; color: #fff; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        #preview { width: 100%; border-radius: 5px; display: none; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Create Post</h2>
+        <img id="preview" src="#">
+        <input type="file" id="file" onchange="previewImg(event)">
+        <textarea id="caption" placeholder="Write a caption..."></textarea>
+        <button onclick="uploadPost()">Share Post</button>
+        <br><br>
+        <a href="feed.html" style="color: #a8a8a8; text-decoration: none;">Cancel</a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA", authDomain: "vortex-media-da0e7.firebaseapp.com", projectId: "vortex-media-da0e7", storageBucket: "vortex-media-da0e7.firebasestorage.app", messagingSenderId: "422977677460", appId: "1:422977677460:web:18dad3d9a07eb193052c81" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        window.previewImg = (e) => {
+            const preview = document.getElementById('preview');
+            preview.src = URL.createObjectURL(e.target.files[0]);
+            preview.style.display = 'block';
+        };
+
+        window.uploadPost = async () => {
+            const file = document.getElementById('file').files[0];
+            const caption = document.getElementById('caption').value;
+            if (!file) return Swal.fire('Error', 'Please select an image', 'error');
+
+            Swal.fire({ title: 'Uploading...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const sRef = ref(storage, 'posts/' + Date.now());
+                await uploadBytes(sRef, file);
+                const url = await getDownloadURL(sRef);
+
+                await addDoc(collection(db, "posts"), {
+                    userId: auth.currentUser.uid,
+                    username: auth.currentUser.displayName || 'User',
+                    imageURL: url,
+                    caption: caption,
+                    timestamp: serverTimestamp()
+                });
+
+                Swal.fire('Success', 'Posted successfully!', 'success').then(() => window.location.href="feed.html");
+            } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        };
+    </script>
+</body>
+</html>
