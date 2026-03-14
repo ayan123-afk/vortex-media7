@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile • Vortex Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: #000; color: #fff; font-family: 'Poppins', sans-serif; margin: 0; padding-bottom: 60px; }
+        .header { max-width: 800px; margin: 40px auto; display: flex; align-items: center; padding: 20px; gap: 60px; }
+        .p-img { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #262626; }
+        .stats { display: flex; gap: 30px; margin: 20px 0; }
+        .stat-item { text-align: center; }
+        .stat-item span { display: block; font-weight: 700; font-size: 1.2rem; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; max-width: 900px; margin: 0 auto; border-top: 1px solid #262626; padding-top: 20px; }
+        .grid img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+        .edit-btn { background: #262626; color: #fff; border: none; padding: 5px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; }
+        @media (max-width: 600px) { .header { flex-direction: column; text-align: center; gap: 20px; } .p-img { width: 100px; height: 100px; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img id="uImg" class="p-img" src="https://via.placeholder.com/150">
+        <div class="info">
+            <h2 id="uName">Loading...</h2>
+            <button class="edit-btn">Edit Profile</button>
+            <div class="stats">
+                <div class="stat-item"><span id="pCount">0</span>posts</div>
+                <div class="stat-item"><span id="fCount">0</span>followers</div>
+                <div class="stat-item"><span id="flCount">0</span>following</div>
+            </div>
+            <p id="uBio" style="font-size: 0.9rem;">User Bio goes here...</p>
+        </div>
+    </div>
+
+    <div class="grid" id="pGrid"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA", authDomain: "vortex-media-da0e7.firebaseapp.com", projectId: "vortex-media-da0e7", storageBucket: "vortex-media-da0e7.firebasestorage.app", messagingSenderId: "422977677460", appId: "1:422977677460:web:18dad3d9a07eb193052c81" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) return;
+            // Get user data (supports ?id= parameter for other users)
+            const urlParams = new URLSearchParams(window.location.search);
+            const uid = urlParams.get('id') || user.uid;
+
+            const uDoc = await getDoc(doc(db, "users", uid));
+            const data = uDoc.data();
+            document.getElementById('uName').innerText = data.username;
+            document.getElementById('uImg').src = data.profilePicture;
+            document.getElementById('uBio').innerText = data.bio || "No bio yet.";
+            document.getElementById('fCount').innerText = data.followers || 0;
+            document.getElementById('flCount').innerText = data.following || 0;
+
+            const q = query(collection(db, "posts"), where("userId", "==", uid));
+            const pSnap = await getDocs(q);
+            document.getElementById('pCount').innerText = pSnap.size;
+            pSnap.forEach(d => {
+                document.getElementById('pGrid').innerHTML += `<img src="${d.data().imageURL}">`;
+            });
+        });
+    </script>
+</body>
+</html>
