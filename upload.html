@@ -2,69 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Upload • Vortex Media</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Post • Vortex Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { background: #000; color: #fff; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
-        .card { max-width: 400px; margin: 50px auto; background: #121212; border: 1px solid #262626; padding: 30px; border-radius: 10px; text-align: center; }
-        input, textarea { width: 100%; background: #1a1a1a; border: 1px solid #262626; color: #fff; padding: 10px; margin: 10px 0; border-radius: 5px; box-sizing: border-box;}
-        button { width: 100%; padding: 10px; background: #0095f6; border: none; color: #fff; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        #preview { width: 100%; border-radius: 5px; display: none; margin-bottom: 15px; }
+        :root { --bg: #000; --card: #121212; --border: #262626; --accent: #0095f6; --text: #fff; }
+        body { background: var(--bg); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        .upload-card { background: var(--card); border: 1px solid var(--border); width: 100%; max-width: 400px; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { margin-top: 0; font-weight: 600; font-size: 1.4rem; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        
+        #preview-container { width: 100%; aspect-ratio: 1/1; background: #1a1a1a; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; overflow: hidden; border: 1px dashed #333; cursor: pointer; }
+        #preview-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .upload-placeholder { color: #8e8e8e; text-align: center; }
+        .upload-placeholder i { font-size: 3rem; margin-bottom: 10px; display: block; }
+
+        textarea { width: 100%; background: #1a1a1a; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 8px; resize: none; font-family: inherit; margin-bottom: 20px; box-sizing: border-box; }
+        
+        .btn-upload { background: var(--accent); color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+        .btn-upload:disabled { background: #00376b; color: #78a9d1; cursor: not-allowed; }
+        
+        .back-link { display: block; margin-top: 20px; color: #a8a8a8; text-decoration: none; font-size: 0.9rem; }
+        #file-input { display: none; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>Create Post</h2>
-        <img id="preview" src="#">
-        <input type="file" id="file" onchange="previewImg(event)">
-        <textarea id="caption" placeholder="Write a caption..."></textarea>
-        <button onclick="uploadPost()">Share Post</button>
-        <br><br>
-        <a href="feed.html" style="color: #a8a8a8; text-decoration: none;">Cancel</a>
+
+<div class="upload-card">
+    <h2>Create New Post</h2>
+    
+    <div id="preview-container" onclick="document.getElementById('file-input').click()">
+        <div class="upload-placeholder" id="placeholder-text">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <span>Click to select a photo</span>
+        </div>
+        <img id="preview-img" src="">
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+    <input type="file" id="file-input" accept="image/*">
+    <textarea id="caption" rows="4" placeholder="Write a caption..."></textarea>
+    
+    <button class="btn-upload" id="uploadBtn" onclick="handleUpload()">Share Post</button>
+    
+    <a href="feed.html" class="back-link">Cancel and go back</a>
+</div>
 
-        const firebaseConfig = { apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA", authDomain: "vortex-media-da0e7.firebaseapp.com", projectId: "vortex-media-da0e7", storageBucket: "vortex-media-da0e7.firebasestorage.app", messagingSenderId: "422977677460", appId: "1:422977677460:web:18dad3d9a07eb193052c81" };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        window.previewImg = (e) => {
-            const preview = document.getElementById('preview');
-            preview.src = URL.createObjectURL(e.target.files[0]);
-            preview.style.display = 'block';
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA",
+        authDomain: "vortex-media-da0e7.firebaseapp.com",
+        projectId: "vortex-media-da0e7",
+        storageBucket: "vortex-media-da0e7.firebasestorage.app",
+        messagingSenderId: "422977677460",
+        appId: "1:422977677460:web:18dad3d9a07eb193052c81"
+    };
 
-        window.uploadPost = async () => {
-            const file = document.getElementById('file').files[0];
-            const caption = document.getElementById('caption').value;
-            if (!file) return Swal.fire('Error', 'Please select an image', 'error');
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-            Swal.fire({ title: 'Uploading...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    let currentUserData = null;
 
-            try {
-                const sRef = ref(storage, 'posts/' + Date.now());
-                await uploadBytes(sRef, file);
-                const url = await getDownloadURL(sRef);
+    // 1. Check Auth and Fetch User Profile Data
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = "login.html";
+        } else {
+            // Get the actual username from Firestore
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                currentUserData = userDoc.data();
+            }
+        }
+    });
 
-                await addDoc(collection(db, "posts"), {
-                    userId: auth.currentUser.uid,
-                    username: auth.currentUser.displayName || 'User',
-                    imageURL: url,
-                    caption: caption,
-                    timestamp: serverTimestamp()
-                });
+    // 2. Image Preview Logic
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('preview-img').src = event.target.result;
+                document.getElementById('preview-img').style.display = 'block';
+                document.getElementById('placeholder-text').style.display = 'none';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
 
-                Swal.fire('Success', 'Posted successfully!', 'success').then(() => window.location.href="feed.html");
-            } catch (e) { Swal.fire('Error', e.message, 'error'); }
-        };
-    </script>
+    // 3. Handle the Upload
+    window.handleUpload = async () => {
+        const file = document.getElementById('file-input').files[0];
+        const caption = document.getElementById('caption').value;
+        const btn = document.getElementById('uploadBtn');
+
+        if (!file) {
+            return Swal.fire('Error', 'Please select an image first!', 'warning');
+        }
+
+        // Disable UI
+        btn.disabled = true;
+        btn.innerText = "Uploading...";
+        
+        Swal.fire({
+            title: 'Sharing your post...',
+            html: 'Please wait while we process the image',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        try {
+            // A. Upload Image to Firebase Storage
+            const storageRef = ref(storage, `posts/${auth.currentUser.uid}_${Date.now()}`);
+            const uploadTask = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(uploadTask.ref);
+
+            // B. Save Post Data to Firestore
+            await addDoc(collection(db, "posts"), {
+                userId: auth.currentUser.uid,
+                username: currentUserData ? currentUserData.username : "User",
+                userPic: currentUserData ? currentUserData.profilePicture : "https://via.placeholder.com/150",
+                imageURL: downloadURL,
+                caption: caption,
+                likes: 0,
+                timestamp: serverTimestamp()
+            });
+
+            // C. Success Notification
+            Swal.fire({
+                icon: 'success',
+                title: 'Post Shared!',
+                text: 'Your post is now live on the feed.',
+                confirmButtonColor: '#0095f6'
+            }).then(() => {
+                window.location.href = 'feed.html';
+            });
+
+        } catch (error) {
+            console.error(error);
+            btn.disabled = false;
+            btn.innerText = "Share Post";
+            Swal.fire('Upload Failed', error.message, 'error');
+        }
+    };
+</script>
 </body>
 </html>
