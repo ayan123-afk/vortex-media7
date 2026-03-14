@@ -2,65 +2,116 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login • Vortex Media</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { background: #000; color: #fff; font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: #121212; border: 1px solid #262626; padding: 40px; width: 350px; text-align: center; border-radius: 5px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #1a1a1a; border: 1px solid #262626; color: #fff; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #0095f6; border: none; color: #fff; font-weight: bold; cursor: pointer; border-radius: 5px; margin-top: 10px; }
-        a { color: #0095f6; text-decoration: none; font-size: 0.9rem; }
+        :root { --bg: #000; --card: #121212; --accent: #0095f6; --text: #fff; --gray: #262626; }
+        body { background: var(--bg); color: var(--text); font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .box { background: var(--card); border: 1px solid var(--gray); padding: 40px; width: 350px; text-align: center; border-radius: 4px; }
+        h1 { font-size: 2.2rem; margin-bottom: 30px; font-weight: 700; letter-spacing: -1px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; background: #1a1a1a; border: 1px solid var(--gray); color: white; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: var(--accent); border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 15px; }
+        .footer { margin-top: 20px; font-size: 0.9rem; color: #a8a8a8; }
+        .footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h1 style="font-weight: 700; letter-spacing: -1px;">Vortex Media</h1>
-        <input type="email" id="email" placeholder="Email">
-        <input type="password" id="pass" placeholder="Password">
-        <button onclick="handleLogin()">Log In</button>
-        <p style="color: #a8a8a8; font-size: 0.9rem; margin-top: 20px;">Don't have an account? <a href="signup.html">Sign Up</a></p>
+
+<div class="box">
+    <h1>Vortex Media</h1>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="loginBtn" onclick="handleLogin()">Log In</button>
+    <div class="footer">
+        Don't have an account? <a href="signup.html">Sign up</a>
     </div>
+</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA", authDomain: "vortex-media-da0e7.firebaseapp.com", projectId: "vortex-media-da0e7", storageBucket: "vortex-media-da0e7.firebasestorage.app", messagingSenderId: "422977677460", appId: "1:422977677460:web:18dad3d9a07eb193052c81" };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    const firebaseConfig = {
+        apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA",
+        authDomain: "vortex-media-da0e7.firebaseapp.com",
+        projectId: "vortex-media-da0e7",
+        storageBucket: "vortex-media-da0e7.firebasestorage.app",
+        messagingSenderId: "422977677460",
+        appId: "1:422977677460:web:18dad3d9a07eb193052c81"
+    };
 
-        window.handleLogin = async () => {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('pass').value;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-            try {
-                const res = await signInWithEmailAndPassword(auth, email, pass);
-                const userDoc = await getDoc(doc(db, "users", res.user.uid));
+    window.handleLogin = async () => {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+        const btn = document.getElementById('loginBtn');
 
-                // Admin check: Auto-create if it's the specific admin credentials but no doc exists
-                if (!userDoc.exists() && email === "admin@vortexmedia.com") {
-                    await setDoc(doc(db, "users", res.user.uid), {
-                        username: "Admin", email: email, role: "admin", isBanned: false, bio: "Platform Administrator", followers: 0, following: 0, postsCount: 0, createdAt: serverTimestamp()
+        if(!email || !pass) return Swal.fire('Error', 'Fill in all fields', 'warning');
+
+        btn.disabled = true;
+        btn.innerText = "Checking...";
+
+        try {
+            const res = await signInWithEmailAndPassword(auth, email, pass);
+            const userRef = doc(db, "users", res.user.uid);
+            let userDoc = await getDoc(userRef);
+
+            // SPECIAL LOGIC: Handle Admin Auto-creation in Firestore if it doesn't exist
+            if (!userDoc.exists() && email === "admin@vortexmedia.com") {
+                await setDoc(userRef, {
+                    userId: res.user.uid,
+                    username: "Admin",
+                    email: email,
+                    role: "admin",
+                    isBanned: false,
+                    bio: "Platform Administrator",
+                    followers: 0,
+                    following: 0,
+                    postsCount: 0,
+                    createdAt: serverTimestamp()
+                });
+                userDoc = await getDoc(userRef); // Refresh
+            }
+
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+
+                // 1. Check if Banned
+                if (userData.isBanned) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Account Banned',
+                        text: 'Your account has been banned by the administrator.',
+                        confirmButtonColor: '#ed4956'
                     });
-                    window.location.href = "admin.html";
+                    await signOut(auth);
+                    location.reload();
                     return;
                 }
 
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    if (data.isBanned) {
-                        Swal.fire('Banned', 'Your account has been banned by the administrator.', 'error');
-                        await signOut(auth);
-                        return;
-                    }
-                    if (data.role === 'admin') window.location.href = "admin.html";
-                    else window.location.href = "feed.html";
+                // 2. Check Role and Redirect
+                if (userData.role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'feed.html';
                 }
-            } catch (e) { Swal.fire('Error', e.message, 'error'); }
-        };
-    </script>
+            } else {
+                Swal.fire('Error', 'User data not found in database.', 'error');
+                await signOut(auth);
+            }
+
+        } catch (error) {
+            btn.disabled = false;
+            btn.innerText = "Log In";
+            Swal.fire('Login Failed', 'Incorrect email or password.', 'error');
+        }
+    };
+</script>
 </body>
 </html>
