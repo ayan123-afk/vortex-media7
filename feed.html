@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vortex Media Feed</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --bg: #000; --border: #262626; --text: #fff; }
+        body { background: var(--bg); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; padding-top: 60px; padding-bottom: 60px; }
+        
+        /* Navbars */
+        .top-nav { position: fixed; top: 0; width: 100%; height: 60px; background: #000; border-bottom: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 50px; background: #000; border-top: 1px solid var(--border); display: none; justify-content: space-around; align-items: center; z-index: 1000; }
+        
+        .nav-link { color: white; text-decoration: none; font-size: 1.4rem; cursor: pointer; }
+        .logo { font-weight: 700; font-size: 1.5rem; }
+
+        /* Feed */
+        .container { max-width: 500px; margin: 20px auto; }
+        .post { border-bottom: 1px solid var(--border); margin-bottom: 20px; padding-bottom: 10px; }
+        .post-head { display: flex; align-items: center; padding: 10px; }
+        .post-head img { width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; }
+        .post-img { width: 100%; border-radius: 4px; }
+        .post-btns { padding: 10px; font-size: 1.5rem; display: flex; gap: 15px; }
+        .post-info { padding: 0 10px; font-size: 0.9rem; }
+        
+        @media (max-width: 768px) { .top-nav .nav-icons { display: none; } .bottom-nav { display: flex; } }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="logo">Vortex Media</div>
+        <div class="nav-icons" style="display:flex; gap:20px;">
+            <a href="feed.html" class="nav-link"><i class="fas fa-home"></i></a>
+            <a href="messages.html" class="nav-link"><i class="fas fa-paper-plane"></i></a>
+            <a href="upload.html" class="nav-link"><i class="fas fa-plus-square"></i></a>
+            <a href="explore.html" class="nav-link"><i class="fas fa-compass"></i></a>
+            <a href="notifications.html" class="nav-link"><i class="fas fa-heart"></i></a>
+            <a href="profile.html" class="nav-link"><i class="fas fa-user-circle"></i></a>
+        </div>
+    </nav>
+
+    <div class="container" id="feed">
+        <!-- Static Placeholder while loading -->
+        <p style="text-align: center; color: #a8a8a8;">Loading your feed...</p>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="feed.html" class="nav-link"><i class="fas fa-home"></i></a>
+        <a href="explore.html" class="nav-link"><i class="fas fa-search"></i></a>
+        <a href="upload.html" class="nav-link"><i class="fas fa-plus-square"></i></a>
+        <a href="notifications.html" class="nav-link"><i class="fas fa-heart"></i></a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user-circle"></i></a>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA", authDomain: "vortex-media-da0e7.firebaseapp.com", projectId: "vortex-media-da0e7", storageBucket: "vortex-media-da0e7.firebasestorage.app", messagingSenderId: "422977677460", appId: "1:422977677460:web:18dad3d9a07eb193052c81" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) window.location.href = "login.html";
+            loadPosts();
+        });
+
+        async function loadPosts() {
+            const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+            const snap = await getDocs(q);
+            const feed = document.getElementById('feed');
+            feed.innerHTML = snap.empty ? '<p style="text-align:center">Follow users to see posts!</p>' : '';
+            
+            snap.forEach(doc => {
+                const p = doc.data();
+                feed.innerHTML += `
+                    <div class="post">
+                        <div class="post-head">
+                            <img src="${p.userPic || 'https://via.placeholder.com/150'}">
+                            <strong>${p.username}</strong>
+                        </div>
+                        <img src="${p.imageURL}" class="post-img">
+                        <div class="post-btns">
+                            <i class="far fa-heart"></i>
+                            <i class="far fa-comment"></i>
+                            <i class="far fa-paper-plane"></i>
+                        </div>
+                        <div class="post-info">
+                            <strong>${p.username}</strong> ${p.caption}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
