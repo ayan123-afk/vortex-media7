@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Explore • Vortex Media</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --bg: #000; --border: #262626; --text: #fff; --accent: #0095f6; }
+        body { background: var(--bg); color: var(--text); font-family: 'Poppins', sans-serif; margin: 0; padding-top: 70px; padding-bottom: 60px; }
+        nav { position: fixed; top: 0; width: 100%; height: 60px; background: #000; border-bottom: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
+        .search-box { background: #262626; border: none; padding: 8px 15px; border-radius: 8px; color: white; width: 300px; text-align: center; }
+        
+        .explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; max-width: 900px; margin: 0 auto; padding: 5px; }
+        .grid-item { aspect-ratio: 1/1; background: #121212; position: relative; cursor: pointer; overflow: hidden; }
+        .grid-item img { width: 100%; height: 100%; object-fit: cover; }
+        .grid-item:hover .overlay { display: flex; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; gap: 20px; font-weight: 600; }
+
+        .user-result { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); max-width: 400px; margin: 0 auto; text-decoration: none; color: white; }
+        .user-result img { width: 40px; height: 40px; border-radius: 50%; margin-right: 15px; }
+        
+        @media (max-width: 768px) { .search-box { width: 80%; } .explore-grid { grid-template-columns: repeat(3, 1fr); } }
+    </style>
+</head>
+<body>
+    <nav>
+        <div onclick="location.href='feed.html'" style="cursor:pointer; font-weight:700;">Vortex</div>
+        <input type="text" class="search-box" id="searchInput" placeholder="Search Users..." oninput="searchUsers()">
+        <div style="width:50px"></div>
+    </nav>
+
+    <div id="searchResults"></div>
+
+    <div class="explore-grid" id="exploreGrid">
+        <!-- Trending posts loaded via JS -->
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, getDocs, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDMnD-ZMnrWWWcv2pMnNCOeVPi6tv6X7xA", authDomain: "vortex-media-da0e7.firebaseapp.com", projectId: "vortex-media-da0e7", storageBucket: "vortex-media-da0e7.firebasestorage.app", messagingSenderId: "422977677460", appId: "1:422977677460:web:18dad3d9a07eb193052c81" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Load trending posts
+        async function loadExplore() {
+            const q = query(collection(db, "posts"), limit(21));
+            const snap = await getDocs(q);
+            const grid = document.getElementById('exploreGrid');
+            snap.forEach(doc => {
+                const p = doc.data();
+                grid.innerHTML += `
+                    <div class="grid-item">
+                        <img src="${p.imageURL}">
+                        <div class="overlay"><i class="fas fa-heart"></i> ${p.likes || 0}</div>
+                    </div>
+                `;
+            });
+        }
+
+        window.searchUsers = async () => {
+            const val = document.getElementById('searchInput').value;
+            const res = document.getElementById('searchResults');
+            const grid = document.getElementById('exploreGrid');
+            
+            if (val.length < 1) { res.innerHTML = ""; grid.style.display = "grid"; return; }
+            grid.style.display = "none";
+
+            const q = query(collection(db, "users"), where("username", ">=", val), limit(5));
+            const snap = await getDocs(q);
+            res.innerHTML = "";
+            snap.forEach(doc => {
+                const u = doc.data();
+                res.innerHTML += `
+                    <a href="profile.html?id=${u.userId}" class="user-result">
+                        <img src="${u.profilePicture}">
+                        <div><strong>${u.username}</strong><br><small style="color:#a8a8a8">${u.bio || ''}</small></div>
+                    </a>
+                `;
+            });
+        }
+        loadExplore();
+    </script>
+</body>
+</html>
